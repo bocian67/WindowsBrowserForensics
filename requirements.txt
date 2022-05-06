@@ -1,0 +1,5 @@
+pytsk3
+registry
+libewf-python
+python-registry
+unicode
