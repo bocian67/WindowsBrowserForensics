@@ -1,4 +1,6 @@
 from __future__ import print_function
+
+import json
 from argparse import ArgumentParser
 import datetime
 from io import BytesIO
@@ -6,8 +8,13 @@ from Registry import Registry
 from TSKUtility import TSKUtil
 import codecs
 import re
+from difflib import SequenceMatcher
+from pathlib import Path
 
 browser_list = []
+browser_name_threshold = 0.8
+findings = []
+
 
 def parse_windows_filetime(date_value):
     microseconds = float(date_value) / 10
@@ -32,20 +39,34 @@ def decode_value(value):
     return return_value
 
 
-def display_names_from_key(subkeys):
-    for value in subkeys:
-        value_name = value.name()
+def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
+    value_name = value.name()
+    try:
+        display_name = value.value("DisplayName").value()
+    except:
         try:
-            display_name = value.value("DisplayName").value()
+            display_name = value.value("").value()
         except:
-            try:
-                display_name = value.value("").value()
-            except:
-                display_name = value_name
-        if display_name not in browser_list:
-            browser_list.append(display_name)
+            display_name = value_name
 
-        print(f"Key: {display_name}")
+    check_name_with_known_browsers(display_name, threshold)
+
+
+def check_name_with_known_browsers(display_name, threshold=browser_name_threshold):
+    for browser in browser_list:
+        browser_name = browser["name"]
+        seq_ratio = SequenceMatcher(a=display_name, b=browser_name).ratio()
+        #print(f"{display_name} -- {browser_name}: {seq_ratio}")
+        if seq_ratio >= threshold:
+            print(f"[#] Browser: {display_name}")
+            break
+        else:
+            for browser_ref in browser["references"]:
+                seq_ratio = SequenceMatcher(a=display_name, b=browser_ref).ratio()
+                #print(f"{display_name} -- {browser_ref}: {seq_ratio}")
+                if seq_ratio >= threshold:
+                    print(f"[#] Browser: {browser_ref}")
+                    break
 
 
 def process_recent_opened_applications(hive):
@@ -80,7 +101,8 @@ def process_start_menu_internet(hive):
             .find_key("Clients")\
             .find_key("StartMenuInternet")
         subkeys = uninstall_key.subkeys()
-        display_names_from_key(subkeys)
+        for value in subkeys:
+            check_registry_value_with_known_browsers(value)
 
     except:
         print("[!] Error finding StartMenuInternet key")
@@ -90,7 +112,8 @@ def process_start_menu_internet(hive):
         uninstall_key = root.find_key("Clients")\
             .find_key("StartMenuInternet")
         subkeys = uninstall_key.subkeys()
-        display_names_from_key(subkeys)
+        for value in subkeys:
+            check_registry_value_with_known_browsers(value)
 
     except:
         print("[!] Error finding StartMenuInternet key")
@@ -108,7 +131,8 @@ def process_uninstall_key_from_hive(hive):
             .find_key("CurrentVersion")\
             .find_key("Uninstall")
         subkeys = uninstall_key.subkeys()
-        display_names_from_key(subkeys)
+        for value in subkeys:
+            check_registry_value_with_known_browsers(value)
     except:
         print("[!] Error finding uninstall key")
 
@@ -120,7 +144,8 @@ def process_uninstall_key_from_hive(hive):
             .find_key("CurrentVersion")\
             .find_key("Uninstall")
         subkeys = uninstall_key.subkeys()
-        display_names_from_key(subkeys)
+        for value in subkeys:
+            check_registry_value_with_known_browsers(value)
     except:
         print("[!] Error finding uninstall key")
 
@@ -133,6 +158,14 @@ def open_file_as_reg(reg_file):
 
 
 def main(evidence, image_type):
+    global browser_list
+    # Load browser list from json
+    with open("browsers.json", "r") as f:
+        file_content = f.read()
+        json_file_content = json.loads(file_content)
+        browser_list = json_file_content["browsers"]
+        f.close()
+
     tsk_util = TSKUtil(evidence, image_type)
 
     # Software Hive
@@ -151,7 +184,8 @@ def main(evidence, image_type):
         user_hive = open_file_as_reg(ntuser[0][2])
         last_opened_applications = process_recent_opened_applications(user_hive)
         for application in last_opened_applications:
-            print(application)
+            path = Path(application)
+            check_name_with_known_browsers(path.stem)
 
 
 if __name__ == '__main__':

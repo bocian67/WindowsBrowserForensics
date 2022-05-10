@@ -1,0 +1,132 @@
+{
+  "browsers": [
+    {
+      "name": "Pale Moon",
+      "references": []
+    },
+    {
+      "name": "Chrome",
+      "references": ["Google Chrome"]
+    },
+    {
+      "name": "Chrome Portable",
+      "references": ["Google Chrome Portable"]
+    },
+    {
+      "name": "Edge",
+      "references": ["Microsoft Edge"]
+    },
+    {
+      "name": "Opera",
+      "references": []
+    },
+    {
+      "name": "Safari",
+      "references": ["Apple Safari"]
+    },
+    {
+      "name": "SeaMonkey",
+      "references": []
+    },
+    {
+      "name": "Vivaldi",
+      "references": []
+    },
+    {
+      "name": "Yandex",
+      "references": ["Yandex.Browser"]
+    },
+    {
+      "name": "Firefox",
+      "references": ["Mozilla Firefox"]
+    },
+    {
+      "name": "Firefox Portable",
+      "references": ["Mozilla Firefox Portable", "Firefox Portable Edition"]
+    },
+    {
+      "name": "Internet Explorer",
+      "references": []
+    },
+    {
+      "name": "Maxthon",
+      "references": []
+    },
+    {
+      "name": "K-Meleon",
+      "references": []
+    },
+    {
+      "name": "xxxterm",
+      "references": []
+    },
+    {
+      "name": "Camino",
+      "references": []
+    },
+    {
+      "name": "Surf",
+      "references": []
+    },
+    {
+      "name": "Netscape",
+      "references": []
+    },
+    {
+      "name": "Tor",
+      "references": ["Tor Browser"]
+    },
+    {
+      "name": "Ghostery",
+      "references": ["Ghostery Dawn", "Ghostery Dawn Privacy Browser"]
+    },
+    {
+      "name": "S-Protect Sparkassen Browser",
+      "references": ["S-Protect"]
+    },
+    {
+      "name": "Brave",
+      "references": ["Brave Browser"]
+    },
+    {
+      "name": "t-online.de Browser",
+      "references": []
+    },
+    {
+      "name": "Cliqz",
+      "references": ["Cliqz Browser"]
+    },
+    {
+      "name": "UC Browser",
+      "references": []
+    },
+    {
+      "name": "Epic Privacy Browser",
+      "references": []
+    },
+    {
+      "name": "Waterfox",
+      "references": []
+    },
+    {
+      "name": "SRWare Iron",
+      "references": []
+    },
+    {
+      "name": "CCleaner Browser",
+      "references": []
+    },
+    {
+      "name": "BitBox",
+      "references": ["BitBox - Browser in the Box"]
+    },
+    {
+      "name": "Falkon",
+      "references": ["Falkon Portable"]
+    },
+    {
+      "name": "Lagrange",
+      "references": ["Lagrange Portable"]
+    }
+  ]
+}
