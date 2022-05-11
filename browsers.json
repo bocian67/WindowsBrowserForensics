@@ -1,28 +1,90 @@
 {
   "browsers": [
     {
-      "name": "Pale Moon",
-      "references": []
+      "name": "Firefox",
+      "references": ["Mozilla Firefox"],
+      "databases": {
+        "default": "10",
+        "name": "places.sqlite",
+        "10": ["/Users/<user>/AppData/Roaming/Mozilla/Firefox/Profiles/"]
+      },
+      "_docs": "https://support.mozilla.org/en-US/kb/profiles-where-firefox-stores-user-data"
+    },
+    {
+      "name": "Firefox Portable",
+      "portable": true,
+      "references": ["Mozilla Firefox Portable", "Firefox Portable Edition"],
+      "databases": {
+        "default": "10",
+        "name": "places.sqlite",
+        "10": ["<portable>/Data/profile/"]
+      },
+      "_docs": "https://www.svbrock.de/index.php?option=com_content&view=article&id=293:wo-speichert-firefox-portable-seine-lesezeichen-bookmarks-ab&catid=12&Itemid=167"
+    },
+    {
+      "name": "Internet Explorer",
+      "references": ["IE"],
+      "databases": {
+        "default": "10",
+        "name": "WebCacheV01.dat",
+        "10": ["/Users/<user>/AppData/Local/Microsoft/Windows/WebCache/"]
+      },
+      "_docs": "https://www.foxtonforensics.com/browser-history-examiner/internet-explorer-history-location"
     },
     {
       "name": "Chrome",
-      "references": ["Google Chrome"]
+      "references": ["Google Chrome"],
+      "databases": {
+        "default": "10",
+        "name": "History",
+        "10": ["/Users/<user>/AppData/Local/Google/Chrome/User Data/"]
+      },
+      "_docs": "https://chromium.googlesource.com/chromium/src/+/master/docs/user_data_dir.md"
     },
     {
       "name": "Chrome Portable",
-      "references": ["Google Chrome Portable"]
+      "references": ["Google Chrome Portable"],
+      "portable": true
     },
     {
       "name": "Edge",
-      "references": ["Microsoft Edge"]
+      "references": ["Microsoft Edge"],
+      "databases": {
+        "default": "10",
+        "name": "History",
+        "10": ["/Users/<user>/AppData/Local/Microsoft/Edge/User Data/Default"]
+      },
+      "_docs": "https://www.foxtonforensics.com/browser-history-examiner/microsoft-edge-history-location"
     },
     {
       "name": "Opera",
-      "references": []
+      "references": [],
+      "databases": {
+        "default": "10",
+        "name": "History",
+        "10": ["/Users/<user>/AppData/roaming/Opera Software/Opera Stable/"]
+      },
+      "_docs": ""
     },
     {
       "name": "Safari",
       "references": ["Apple Safari"]
+    },
+    {
+      "name": "Tor",
+      "references": ["Tor Browser"]
+    },
+    {
+      "name": "Ghostery",
+      "references": ["Ghostery Dawn", "Ghostery Dawn Privacy Browser"]
+    },
+    {
+      "name": "Brave",
+      "references": ["Brave Browser"]
+    },
+    {
+      "name": "Pale Moon",
+      "references": []
     },
     {
       "name": "SeaMonkey",
@@ -35,18 +97,6 @@
     {
       "name": "Yandex",
       "references": ["Yandex.Browser"]
-    },
-    {
-      "name": "Firefox",
-      "references": ["Mozilla Firefox"]
-    },
-    {
-      "name": "Firefox Portable",
-      "references": ["Mozilla Firefox Portable", "Firefox Portable Edition"]
-    },
-    {
-      "name": "Internet Explorer",
-      "references": []
     },
     {
       "name": "Maxthon",
@@ -73,20 +123,8 @@
       "references": []
     },
     {
-      "name": "Tor",
-      "references": ["Tor Browser"]
-    },
-    {
-      "name": "Ghostery",
-      "references": ["Ghostery Dawn", "Ghostery Dawn Privacy Browser"]
-    },
-    {
       "name": "S-Protect Sparkassen Browser",
       "references": ["S-Protect"]
-    },
-    {
-      "name": "Brave",
-      "references": ["Brave Browser"]
     },
     {
       "name": "t-online.de Browser",

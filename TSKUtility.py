@@ -186,13 +186,14 @@ class TSKUtil(object):
     def recurse_dirs(self, part, fs, root_dir, dirs, data, parent, substring, logic, case, should_open_subdirectories):
         dirs.append(root_dir.info.fs_file.meta.addr)
         for fs_object in root_dir:
+            file_name = fs_object.info.name.name.decode("latin-1")
             # Skip ".", ".." or directory entries without a name.
             if not hasattr(fs_object, "info") or not hasattr(fs_object.info, "name") or not \
-                    hasattr(fs_object.info.name, "name") or fs_object.info.name.name in [".", ".."]:
+                    hasattr(fs_object.info.name, "name") or file_name in [".", ".."]:
                 continue
             try:
-                file_name = fs_object.info.name.name.decode("latin-1")
-                file_path = "{}/{}".format("/".join(parent), fs_object.info.name.name.decode("latin-1"))
+                file_path = "{}/{}".format("/".join(parent), file_name)
+                # print(file_path)
                 try:
                     if fs_object.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR:
                         f_type = "DIR"
