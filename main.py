@@ -15,6 +15,10 @@ import re
 from difflib import SequenceMatcher
 from pathlib import Path
 import os
+from ctypes import windll, wintypes, byref#
+from win32_setctime import setctime
+import XWF
+
 
 tsk_util = None
 browser_list = []
@@ -121,25 +125,49 @@ def get_database(found_browser):
 
 # Container (ewf):
 
+"""
+Metadata:
+ctime: Changed Time
+crtime: Creation Time
+atime: Access Time 
+mtime: Modified Time
+
+zudem noch die Varianten in _ns time (sonst Sekunden)
+
+os.utime: Access and Modification time (atime, mtime)
+    mit times seconds, mit ns nanoseconds
+
+"""
 
 def extract_file(file, file_name):
     file_size = file.info.meta.size
+
+    # Get timestamps
+    crtime = file.info.meta.crtime
+    atime = file.info.meta.atime
+    mtime = file.info.meta.mtime
+
     file_content = file.read_random(0, file_size)
     path = Path(output_dir).joinpath(file_name)
-    print(path)
     os.makedirs(path.parent, exist_ok=True)
 
     files_in_directory = [f for f in listdir(str(path.parent)) if isfile(join(path.parent, f))]
-# TODO: FIX
+
     if len(files_in_directory) > 0:
         file_name_without_ext = path.stem
         ext = path.suffix
-        file_name_without_ext += "_" + str(len(files_in_directory))
-        path = path.parent + file_name_without_ext + ext
+        file_name_without_ext += "_" + str(len(files_in_directory) + 1)
+        path = path.parent.joinpath(str(file_name_without_ext) + str(ext))
 
     with open(path, "wb") as f:
         f.write(file_content)
 
+    # Set timestamps
+    try:
+        setctime(path, crtime)
+        os.utime(path, times=(atime, mtime))
+    except:
+        pass
 
 
 def check_name_with_known_browsers(display_name, threshold=browser_name_threshold):
