@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import json
 import random
+import subprocess
 from argparse import ArgumentParser
 import datetime
 from io import BytesIO
@@ -15,9 +16,8 @@ import re
 from difflib import SequenceMatcher
 from pathlib import Path
 import os
-from ctypes import windll, wintypes, byref#
+from ctypes import windll, wintypes, byref
 from win32_setctime import setctime
-import XWF
 
 
 tsk_util = None
@@ -26,7 +26,7 @@ browser_name_threshold = 0.8
 findings = []
 users = []
 windows_version = ""
-output_dir = ""
+temp_output_dir = ""
 counter = 0
 
 
@@ -139,6 +139,7 @@ os.utime: Access and Modification time (atime, mtime)
 
 """
 
+
 def extract_file(file, file_name):
     file_size = file.info.meta.size
 
@@ -148,7 +149,7 @@ def extract_file(file, file_name):
     mtime = file.info.meta.mtime
 
     file_content = file.read_random(0, file_size)
-    path = Path(output_dir).joinpath(file_name)
+    path = Path(temp_output_dir).joinpath(file_name)
     os.makedirs(path.parent, exist_ok=True)
 
     files_in_directory = [f for f in listdir(str(path.parent)) if isfile(join(path.parent, f))]
@@ -276,14 +277,14 @@ def open_file_as_reg(reg_file):
     return Registry.Registry(file_like_obj)
 
 
-def main(evidence, image_type, out_dir):
+def main(evidence, image_type, temp_drive, out_dir):
     global browser_list
     global users
     global windows_version
     global tsk_util
-    global output_dir
+    global temp_output_dir
 
-    output_dir = out_dir
+    temp_output_dir = temp_drive
 
     # Load browser list from json
     with open("browsers.json", "r") as f:
@@ -324,12 +325,21 @@ def main(evidence, image_type, out_dir):
             path = Path(application)
             check_name_with_known_browsers(path.stem)
 
+    # Make image from partition
+    out_dir_path = Path(out_dir) / "image.dd"
+    dd_path = Path(os.path.realpath(__file__)).parent.joinpath("dd/dd.exe")
+    execution = [str(dd_path), "if=\\\\.\\" + str(temp_output_dir), "of=" + str(out_dir_path), "bs=512k"]
+    subprocess.run(execution)
+
+    # TODO: dann temp_output_dir wieder leer machen? mit @vicky bereden
+
 
 if __name__ == '__main__':
     parser = ArgumentParser('Evidence from Windows Registry')
     parser.add_argument('EVIDENCE_FILE', help="Path to evidence file")
-    parser.add_argument('IMAGE_TYPE', help = "Evidence file format", choices = ('ewf', 'raw'))
+    parser.add_argument('IMAGE_TYPE', help="Evidence file format", choices=('ewf', 'raw'))
+    parser.add_argument('TEMP_DRIVE', help="Path to output directory for browser databases")
     parser.add_argument('OUTPUT_DIR', help="Path to output directory for browser databases")
     args = parser.parse_args()
 
-    main(args.EVIDENCE_FILE, args.IMAGE_TYPE, args.OUTPUT_DIR)
+    main(args.EVIDENCE_FILE, args.IMAGE_TYPE, args.TEMP_DRIVE, args.OUTPUT_DIR)

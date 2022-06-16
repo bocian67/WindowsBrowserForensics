@@ -67,12 +67,12 @@
       "_docs": ""
     },
     {
-      "name": "Safari",
-      "references": ["Apple Safari"]
-    },
-    {
       "name": "Tor",
       "references": ["Tor Browser"]
+    },
+    {
+      "name": "Safari",
+      "references": ["Apple Safari"]
     },
     {
       "name": "Ghostery",
