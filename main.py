@@ -1,46 +1,52 @@
+# -*- encoding: utf-8 -*-
 from __future__ import print_function
 
-import json
-import random
+import codecs
+import datetime
+import os
+import re
 import subprocess
 from argparse import ArgumentParser
-import datetime
 from io import BytesIO
-from os import listdir
-from os.path import isfile, join
+from pathlib import Path
 
 from Registry import Registry
-from TSKUtility import TSKUtil
-import codecs
-import re
-from difflib import SequenceMatcher
-from pathlib import Path
-import os
-from ctypes import windll, wintypes, byref
 from win32_setctime import setctime
 
-
-tsk_util = None
-browser_list = []
-browser_name_threshold = 0.8
-findings = []
-users = []
-windows_version = ""
-temp_output_dir = ""
-counter = 0
+import variables
+from TSKUtility import TSKUtil
+from modules import extraction_browser_history
 
 
-def get_windows_version(hive):
-    root = hive.root()
-    current_version = root.find_key("Microsoft") \
-        .find_key("Windows NT") \
-        .find_key("CurrentVersion")
-    value = str(current_version.value("ProductName").value())
-    regex_match = re.search("Windows (\w+) \w+", value)
-    if regex_match:
-        value = regex_match.group(1)
+def main(evidence, image_type, temp_drive, out_dir):
+    variables.temp_output_dir = temp_drive
 
-    return value
+    variables.tsk_util = TSKUtil(evidence, image_type)
+
+    variables.users = variables.tsk_util.find_users("/users")
+
+    # Use modules
+    extraction_browser_history.__init__()
+
+    # Create image
+    make_image(out_dir)
+
+
+def make_image(out_dir):
+    # Make image from partition
+    out_dir_path = Path(out_dir) / "image.dd"
+    dd_path = Path(os.path.realpath(__file__)).parent.joinpath("dd/dd.exe")
+    execution = [str(dd_path), "if=\\\\.\\" + str(variables.temp_output_dir), "of=" + str(out_dir_path), "bs=512k"]
+    subprocess.run(execution)
+
+    # TODO: dann temp_output_dir wieder leer machen? mit @vicky bereden
+
+
+def open_file_as_reg(reg_file):
+    file_size = reg_file.info.meta.size
+    file_content = reg_file.read_random(0, file_size)
+    file_like_obj = BytesIO(file_content)
+    return Registry.Registry(file_like_obj)
 
 
 def parse_windows_filetime(date_value):
@@ -66,81 +72,7 @@ def decode_value(value):
     return return_value
 
 
-def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
-    value_name = value.name()
-    try:
-        display_name = value.value("DisplayName").value()
-        install_location = value.value("InstallLocation").value()
-    except:
-        try:
-            display_name = value.value("").value()
-        except:
-            display_name = value_name
-
-    found_browser = check_name_with_known_browsers(display_name, threshold)
-    if found_browser is not None:
-        get_database(found_browser)
-
-
-def get_database(found_browser):
-    # Portable Browser
-    if "portable" in found_browser and found_browser["portable"] is True:
-        pass
-    else:
-        # Get database location in Windows
-        if "databases" in found_browser:
-            databases = found_browser["databases"]
-            if windows_version in databases:
-                database_locations = databases[windows_version]
-            else:
-                default_version = databases["default"]
-                database_locations = databases[default_version]
-
-            database_name = databases["name"]
-            for database_location in database_locations:
-                # Replace <user> in database location
-                if "<user>" in database_location:
-                    for user in users:
-                        user_database_location = database_location.replace("<user>", user)
-                        print(f"\t{user_database_location}")
-                        database = tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
-                        if database is not None:
-                            file_name_directory = "/".join([found_browser["name"], user, str(database_name)])
-                            extract_file(database[0][2], file_name_directory)
-                else:
-                    print(f"\t{database_location}")
-                    database = tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
-                    if database is not None:
-                        file_name_directory = "/".join([found_browser["name"], str(database_name)])
-                        extract_file(database[0][2], file_name_directory)
-
-# Output:
-    # Firefox
-        # Viktor Web
-                # places_1.sqlite
-                # places_1.sqlite.txt -> hash
-                # places_2.sqlite
-                # + Hash-Vergleich, falls doppelt wieder löschen
-    # Opera
-
-# Container (ewf):
-
-"""
-Metadata:
-ctime: Changed Time
-crtime: Creation Time
-atime: Access Time 
-mtime: Modified Time
-
-zudem noch die Varianten in _ns time (sonst Sekunden)
-
-os.utime: Access and Modification time (atime, mtime)
-    mit times seconds, mit ns nanoseconds
-
-"""
-
-
-def extract_file(file, file_name):
+def extract_file_and_get_path(file, file_name, count_file_name):
     file_size = file.info.meta.size
 
     # Get timestamps
@@ -149,16 +81,13 @@ def extract_file(file, file_name):
     mtime = file.info.meta.mtime
 
     file_content = file.read_random(0, file_size)
-    path = Path(temp_output_dir).joinpath(file_name)
+    path = Path(variables.temp_output_dir).joinpath(file_name)
     os.makedirs(path.parent, exist_ok=True)
 
-    files_in_directory = [f for f in listdir(str(path.parent)) if isfile(join(path.parent, f))]
-
-    if len(files_in_directory) > 0:
-        file_name_without_ext = path.stem
-        ext = path.suffix
-        file_name_without_ext += "_" + str(len(files_in_directory) + 1)
-        path = path.parent.joinpath(str(file_name_without_ext) + str(ext))
+    file_name_without_ext = path.stem
+    ext = path.suffix
+    file_name_without_ext += "_" + str(count_file_name)
+    path = path.parent.joinpath(str(file_name_without_ext) + str(ext))
 
     with open(path, "wb") as f:
         f.write(file_content)
@@ -167,171 +96,29 @@ def extract_file(file, file_name):
     try:
         setctime(path, crtime)
         os.utime(path, times=(atime, mtime))
+        """
+        Access time is changing due to copying.
+        Things I tried:
+            - using exFAT, but this changes the date -> time is gone
+            - making the partition read only after writing files but time changes
+            - Using FTK instead of dd for Windows
+        """
     except:
         pass
+    return path
 
 
-def check_name_with_known_browsers(display_name, threshold=browser_name_threshold):
-    for browser in browser_list:
-        browser_name = browser["name"]
-        seq_ratio = SequenceMatcher(a=display_name, b=browser_name).ratio()
-        # print(f"{display_name} -- {browser_name}: {seq_ratio}")
-        if seq_ratio >= threshold:
-            print(f"[#] Browser: {display_name}")
-            return browser
-        else:
-            for browser_ref in browser["references"]:
-                seq_ratio = SequenceMatcher(a=display_name, b=browser_ref).ratio()
-                # print(f"{display_name} -- {browser_ref}: {seq_ratio}")
-                if seq_ratio >= threshold:
-                    print(f"[#] Browser: {display_name}")
-                    return browser
-    return None
-
-
-def process_recent_opened_applications(hive):
+def get_windows_version(hive):
     root = hive.root()
-    applications = []
-    try:
-        userassist = root.find_key("SOFTWARE")\
-            .find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Explorer")\
-            .find_key("UserAssist")
-        userassist_guids = userassist.subkeys()
+    current_version = root.find_key("Microsoft") \
+        .find_key("Windows NT") \
+        .find_key("CurrentVersion")
+    value = str(current_version.value("ProductName").value())
+    regex_match = re.search("Windows (\w+) \w+", value)
+    if regex_match:
+        value = regex_match.group(1)
 
-        for guid in userassist_guids:
-            count = guid.find_key("Count")
-            count_values = count.values()
-            for key in count_values:
-                key_name = decode_value(key.name())
-                applications.append(key_name)
-    except:
-        print("[!] Error getting last opened applications")
-    return applications
-
-
-def process_start_menu_internet(hive):
-    root = hive.root()
-    print("\n[*] Looking for StartMenuInternet key...\n")
-    try:
-        print("[*] for x64 bit systems...")
-        uninstall_key = root.find_key("WOW6432Node")\
-            .find_key("Clients")\
-            .find_key("StartMenuInternet")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-
-    except:
-        print("[!] Error finding StartMenuInternet key")
-
-    try:
-        print("[*] for x86 bit systems...")
-        uninstall_key = root.find_key("Clients")\
-            .find_key("StartMenuInternet")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-
-    except:
-        print("[!] Error finding StartMenuInternet key")
-
-
-def process_uninstall_key_from_hive(hive):
-    print("\n[*] Processing uninstall keys from hive...\n")
-    root = hive.root()
-    # x32
-    print("[*] looking in x32 bit location...")
-    try:
-        uninstall_key = root.find_key("WOW6432Node")\
-            .find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Uninstall")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-    except:
-        print("[!] Error finding uninstall key")
-
-    # x64
-    print("[*] looking in x64 bit location...")
-    try:
-        uninstall_key = root.find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Uninstall")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-    except:
-        print("[!] Error finding uninstall key")
-
-
-def open_file_as_reg(reg_file):
-    file_size = reg_file.info.meta.size
-    file_content = reg_file.read_random(0, file_size)
-    file_like_obj = BytesIO(file_content)
-    return Registry.Registry(file_like_obj)
-
-
-def main(evidence, image_type, temp_drive, out_dir):
-    global browser_list
-    global users
-    global windows_version
-    global tsk_util
-    global temp_output_dir
-
-    temp_output_dir = temp_drive
-
-    # Load browser list from json
-    with open("browsers.json", "r") as f:
-        file_content = f.read()
-        json_file_content = json.loads(file_content)
-        browser_list = json_file_content["browsers"]
-        f.close()
-
-    tsk_util = TSKUtil(evidence, image_type)
-
-    users = tsk_util.find_users("/users")
-
-    # Software hive
-    tsk_software_hive = tsk_util.recurse_files("software", "/Windows/system32/config", "equals", False, False)
-    software_hive = open_file_as_reg(tsk_software_hive[0][2])
-
-    # Get windows version (to find databases)
-    windows_version = get_windows_version(software_hive)
-    print(f"Windows Version: {windows_version}")
-
-    # Uninstall key
-    process_uninstall_key_from_hive(software_hive)
-
-    # StartMenuInternet key
-    process_start_menu_internet(software_hive)
-
-    # ntuser.dat per user
-    user_ntuser = []
-    for user in users:
-        ntuser = tsk_util.recurse_files("ntuser.dat", "/users/" + user, "equals")
-        user_ntuser.append(ntuser)
-        print(f"\n[*] Getting recent opened application for user {user}...\n")
-        user_hive = open_file_as_reg(ntuser[0][2])
-
-        # Last opened applications per user
-        last_opened_applications = process_recent_opened_applications(user_hive)
-        for application in last_opened_applications:
-            path = Path(application)
-            check_name_with_known_browsers(path.stem)
-
-    # Make image from partition
-    out_dir_path = Path(out_dir) / "image.dd"
-    dd_path = Path(os.path.realpath(__file__)).parent.joinpath("dd/dd.exe")
-    execution = [str(dd_path), "if=\\\\.\\" + str(temp_output_dir), "of=" + str(out_dir_path), "bs=512k"]
-    subprocess.run(execution)
-
-    # TODO: dann temp_output_dir wieder leer machen? mit @vicky bereden
+    return value
 
 
 if __name__ == '__main__':

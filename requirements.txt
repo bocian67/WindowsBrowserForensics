@@ -4,3 +4,5 @@ libewf-python
 python-registry
 unicode
 win32-setctime
+openpyxl
+keyboard
