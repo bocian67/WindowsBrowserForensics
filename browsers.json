@@ -58,7 +58,7 @@
     },
     {
       "name": "Opera",
-      "references": [],
+      "references": ["Opera Web Browser", "Opera Browser", "Opera Stable"],
       "databases": {
         "default": "10",
         "name": "History",

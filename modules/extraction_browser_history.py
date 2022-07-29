@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
 import json
+import time
 from difflib import SequenceMatcher
 from pathlib import Path
 
@@ -7,7 +8,7 @@ from Menu import Menu
 from categoryfilter import CategoryFilter
 from main import decode_value, open_file_as_reg, get_windows_version, extract_file_and_get_path
 import variables
-from modules.processing_browser_history import Firefox
+from modules.processing_browser_history import Firefox, Chrome, Opera
 
 browser_list = []
 browser_name_threshold = 0.8
@@ -55,7 +56,7 @@ def __init__():
         for selection_id in selection:
             category_filter.add_category_to_blacklist(categories[selection_id])
         print(category_filter.blacklist)
-
+    start_time = time.time()
 
     # Load browser list from json
     with open("browsers.json", "r") as f:
@@ -73,25 +74,45 @@ def __init__():
     print(f"Windows Version: {windows_version}")
 
     # Uninstall key
-    process_uninstall_key_from_hive(software_hive)
+    software_root = software_hive.root()
+    process_uninstall_key_from_root(software_root)
 
     # StartMenuInternet key
-    process_start_menu_internet(software_hive)
+    process_start_menu_internet_from_root(software_hive)
 
     # ntuser.dat per user
     user_ntuser = []
     for user in variables.users:
         ntuser = variables.tsk_util.recurse_files("ntuser.dat", "/users/" + user, "equals")
         user_ntuser.append(ntuser)
-        print(f"\n[*] Getting recent opened application for user {user}...\n")
         user_hive = open_file_as_reg(ntuser[0][2])
 
-        # TODO: Process recent opened applications
+        # Uninstall Keys from user
+        user_hive_root = user_hive.root()
+        try:
+            print(f"\n[*] Getting uninstall keys from user {user}...\n")
+            user_software_hive = user_hive_root.find_key("SOFTWARE")
+            process_uninstall_key_from_root(user_software_hive)
+        except:
+            print("[!] Could not find User SOFTWARE Hive")
+
+        try:
+            print(f"\n[*] Getting StartMenuInternet keys from user {user}...\n")
+            user_software_hive = user_hive_root.find_key("SOFTWARE")
+            process_start_menu_internet_from_root(user_software_hive)
+        except:
+            print("[!] Could not find User SOFTWARE Hive")
+
         # Last opened applications per user
+        print(f"\n[*] Getting recent opened application for user {user}...\n")
         last_opened_applications = process_recent_opened_applications(user_hive)
         for application in last_opened_applications:
             path = Path(application)
-            check_name_with_known_browsers(path.stem)
+            found_browser = check_name_with_known_browsers(path.stem, browser_name_threshold)
+            if found_browser is not None:
+                get_database(found_browser)
+
+        return start_time
 
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
@@ -153,14 +174,12 @@ def check_name_with_known_browsers(display_name, threshold=browser_name_threshol
     for browser in browser_list:
         browser_name = browser["name"]
         seq_ratio = SequenceMatcher(a=display_name, b=browser_name).ratio()
-        # print(f"{display_name} -- {browser_name}: {seq_ratio}")
         if seq_ratio >= threshold:
             print(f"[#] Browser: {display_name}")
             return browser
         else:
             for browser_ref in browser["references"]:
                 seq_ratio = SequenceMatcher(a=display_name, b=browser_ref).ratio()
-                # print(f"{display_name} -- {browser_ref}: {seq_ratio}")
                 if seq_ratio >= threshold:
                     print(f"[#] Browser: {display_name}")
                     return browser
@@ -190,11 +209,10 @@ def process_recent_opened_applications(hive):
     return applications
 
 
-def process_start_menu_internet(hive):
-    root = hive.root()
+def process_start_menu_internet_from_root(root):
     print("\n[*] Looking for StartMenuInternet key...\n")
     try:
-        print("[*] for x64 bit systems...")
+        print("[*] for x86 bit systems...")
         uninstall_key = root.find_key("WOW6432Node")\
             .find_key("Clients")\
             .find_key("StartMenuInternet")
@@ -206,7 +224,7 @@ def process_start_menu_internet(hive):
         print("[!] Error finding StartMenuInternet key")
 
     try:
-        print("[*] for x86 bit systems...")
+        print("[*] for x64 bit systems...")
         uninstall_key = root.find_key("Clients")\
             .find_key("StartMenuInternet")
         subkeys = uninstall_key.subkeys()
@@ -216,10 +234,8 @@ def process_start_menu_internet(hive):
     except:
         print("[!] Error finding StartMenuInternet key")
 
-
-def process_uninstall_key_from_hive(hive):
+def process_uninstall_key_from_root(root):
     print("\n[*] Processing uninstall keys from hive...\n")
-    root = hive.root()
     # x32
     print("[*] looking in x32 bit location...")
     try:
@@ -250,10 +266,20 @@ def process_uninstall_key_from_hive(hive):
 
 def extract_and_filter(database, file_name_directory, browser_name):
     global category_filter
-    path_to_db = extract_file_and_get_path(database[0][2], file_name_directory, written_browser_count[file_name_directory])
+    path_to_db = extract_file_and_get_path(
+        database[0][2],
+        file_name_directory,
+        written_browser_count[file_name_directory])
 
     if browser_name == "Firefox":
         browser = Firefox(path_to_db)
         browser.filter_history(category_filter)
+    elif browser_name == "Chrome":
+        browser = Chrome(path_to_db)
+        browser.filter_history(category_filter)
+    elif browser_name == "Opera":
+        browser = Opera(path_to_db)
+        browser.filter_history(category_filter)
+
 
 

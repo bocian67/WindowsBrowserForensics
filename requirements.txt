@@ -6,3 +6,5 @@ unicode
 win32-setctime
 openpyxl
 keyboard
+impacket
+libesedb-python

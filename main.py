@@ -4,6 +4,7 @@ from __future__ import print_function
 import codecs
 import datetime
 import os
+import time
 import re
 import subprocess
 from argparse import ArgumentParser
@@ -26,10 +27,13 @@ def main(evidence, image_type, temp_drive, out_dir):
     variables.users = variables.tsk_util.find_users("/users")
 
     # Use modules
-    extraction_browser_history.__init__()
+    start_time = extraction_browser_history.__init__()
 
     # Create image
     make_image(out_dir)
+
+    end_time = time.time()
+    print("[*] Duration: " + str(end_time - start_time) + " seconds")
 
 
 def make_image(out_dir):
