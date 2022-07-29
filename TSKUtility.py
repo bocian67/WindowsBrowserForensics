@@ -287,7 +287,7 @@ class TSKUtil(object):
         return users
 
 
-def openVSSFS(img, count):
+def open_VSSFS(img, count):
     # Open FS and Recurse
     try:
         fs = pytsk3.FS_Info(img)
@@ -303,9 +303,8 @@ def recurseFiles(count, fs, root_dir, dirs, data, parent):
     dirs.append(root_dir.info.fs_file.meta.addr)
     for fs_object in root_dir:
         # Skip ".", ".." or directory entries without a name.
-        if not hasattr(fs_object, "info") or not hasattr(fs_object.info, "name") or not hasattr(fs_object.info.name,
-                                                                                                "name") or fs_object.info.name.name in [
-            ".", ".."]:
+        if not hasattr(fs_object, "info") or not hasattr(fs_object.info, "name") or \
+                not hasattr(fs_object.info.name,"name") or fs_object.info.name.name in [".", ".."]:
             continue
         try:
             file_name = fs_object.info.name.name
