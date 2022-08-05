@@ -8,7 +8,7 @@ from Menu import Menu
 from categoryfilter import CategoryFilter
 from main import decode_value, open_file_as_reg, get_windows_version, extract_file_and_get_path
 import variables
-from modules.processing_browser_history import Firefox, Chrome, Opera
+from modules.processing_browser_history import Firefox, Chrome, Opera, Edge
 
 browser_list = []
 browser_name_threshold = 0.8
@@ -117,6 +117,7 @@ def __init__():
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
     value_name = value.name()
+    print(value)
     try:
         display_name = value.value("DisplayName").value()
         install_location = value.value("InstallLocation").value()
@@ -279,6 +280,9 @@ def extract_and_filter(database, file_name_directory, browser_name):
         browser.filter_history(category_filter)
     elif browser_name == "Opera":
         browser = Opera(path_to_db)
+        browser.filter_history(category_filter)
+    elif browser_name == "Edge":
+        browser = Edge(path_to_db)
         browser.filter_history(category_filter)
 
 

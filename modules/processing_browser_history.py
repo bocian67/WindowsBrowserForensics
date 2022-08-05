@@ -139,6 +139,45 @@ class Opera(Browser):
                     db.commit()
 
 
+class Edge(Browser):
+    def __init__(self, location):
+        self.location = location
+        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url from visits as v inner join urls as u on v.url = u.id"
+        self.DELETE_URLS_BY_ID = "DELETE FROM urls WHERE id = (?)"
+        self.DELETE_VISITS_BY_ID = "DELETE FROM visits WHERE id = (?)"
+
+    def filter_history(self, category_filter):
+        db = sqlite3.connect(self.location)
+        cursor = db.cursor()
+        cursor.execute(self.GET_JOINED_HISTORY)
+        filter_list = category_filter.get_filter_list()
+        for item in cursor.fetchall():
+            visit_id = item[0]
+            url_id = item[1]
+            url_string = item[2]
+            found_match = False
+            # Only keep items that are in the whitelist
+            if category_filter.use_whitelist:
+                for item_filter in filter_list:
+                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                        found_match = True
+                        break
+                if not found_match:
+                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+                    db.commit()
+            # Only delete things that are in the blacklist
+            else:
+                for item_filter in filter_list:
+                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                        found_match = True
+                        break
+                if found_match:
+                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+                    db.commit()
+
+
 # TODO: Delete is not implemented
 class InternetExplorer(Browser):
     def __init__(self, location):
