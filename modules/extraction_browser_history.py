@@ -6,6 +6,7 @@ from pathlib import Path
 
 from Menu import Menu
 from categoryfilter import CategoryFilter
+from extensions.Hive import Hive
 from main import decode_value, open_file_as_reg, get_windows_version, extract_file_and_get_path
 import variables
 from modules.processing_browser_history import Firefox, Chrome, Opera, Edge
@@ -13,21 +14,10 @@ from modules.processing_browser_history import Firefox, Chrome, Opera, Edge
 browser_list = []
 browser_name_threshold = 0.8
 windows_version = ""
+found_browsers = []
 written_browser_count = {}
 browser_directory_name = "browser_history"
 category_filter = CategoryFilter()
-
-"""
-# Output:
-    browser_history:
-        Firefox
-            Viktor Web
-                    places_1.sqlite
-                    places_1.sqlite.txt -> hash
-                    places_2.sqlite
-                    TODO: + Hash-Vergleich, falls doppelt wieder löschen
-        Opera...
-"""
 
 
 def __init__():
@@ -67,6 +57,7 @@ def __init__():
 
     # Software hive
     tsk_software_hive = variables.tsk_util.recurse_files("software", "/Windows/system32/config", "equals", False, False)
+
     software_hive = open_file_as_reg(tsk_software_hive[0][2])
 
     # Get windows version (to find databases)
@@ -79,6 +70,18 @@ def __init__():
 
     # StartMenuInternet key
     process_start_menu_internet_from_root(software_hive)
+
+    # Get Amcache.hve
+    amcache = variables.tsk_util.recurse_files("Amcache.hve", "/Windows/appcompat/Programs", "equals", False, False)
+    if len(amcache) == 0:
+        print("[!] Could not find Amcache.hve")
+    else:
+        try:
+            #amcache_hive = open_file_as_reg(amcache[0][2])
+            #amcache_hive_root = amcache_hive.root()
+            process_amcache_file_from_root(amcache[0][2])
+        except:
+            print("[!] Could not parse Amcache.hve")
 
     # ntuser.dat per user
     user_ntuser = []
@@ -112,7 +115,7 @@ def __init__():
             if found_browser is not None:
                 get_database(found_browser)
 
-        return start_time
+    return start_time
 
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
@@ -161,6 +164,7 @@ def get_database(found_browser):
                             if file_name_directory not in written_browser_count:
                                 written_browser_count[file_name_directory] = 1
                             extract_and_filter(database, file_name_directory, found_browser["name"])
+                            written_browser_count[file_name_directory] += 1
                 else:
                     print(f"\t{database_location}")
                     database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
@@ -169,6 +173,51 @@ def get_database(found_browser):
                         if file_name_directory not in written_browser_count:
                             written_browser_count[file_name_directory] = 1
                         extract_and_filter(database, file_name_directory, found_browser["name"])
+                        written_browser_count[file_name_directory] += 1
+
+
+def get_databases():
+    global written_browser_count
+    global found_browsers
+
+    for found_browser in found_browsers:
+        # Portable Browser
+        if "portable" in found_browser and found_browser["portable"] is True:
+            # TODO: Portable browser db
+            pass
+        else:
+            # Get database location in Windows
+            if "databases" in found_browser:
+                databases = found_browser["databases"]
+                if windows_version in databases:
+                    database_locations = databases[windows_version]
+                else:
+                    default_version = databases["default"]
+                    database_locations = databases[default_version]
+
+                database_name = databases["name"]
+                for database_location in database_locations:
+                    # Replace <user> in database location
+                    if "<user>" in database_location:
+                        for user in variables.users:
+                            user_database_location = database_location.replace("<user>", user)
+                            print(f"\t{user_database_location}")
+                            database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
+                            if database is not None:
+                                file_name_directory = "/".join([browser_directory_name, found_browser["name"], user, str(database_name)])
+                                if file_name_directory not in written_browser_count:
+                                    written_browser_count[file_name_directory] = 1
+                                extract_and_filter(database, file_name_directory, found_browser["name"])
+                                written_browser_count[file_name_directory] += 1
+                    else:
+                        print(f"\t{database_location}")
+                        database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
+                        if database is not None:
+                            file_name_directory = "/".join([browser_directory_name, found_browser["name"], str(database_name)])
+                            if file_name_directory not in written_browser_count:
+                                written_browser_count[file_name_directory] = 1
+                            extract_and_filter(database, file_name_directory, found_browser["name"])
+                            written_browser_count[file_name_directory] += 1
 
 
 def check_name_with_known_browsers(display_name, threshold=browser_name_threshold):
@@ -235,6 +284,7 @@ def process_start_menu_internet_from_root(root):
     except:
         print("[!] Error finding StartMenuInternet key")
 
+
 def process_uninstall_key_from_root(root):
     print("\n[*] Processing uninstall keys from hive...\n")
     # x32
@@ -286,4 +336,43 @@ def extract_and_filter(database, file_name_directory, browser_name):
         browser.filter_history(category_filter)
 
 
+def process_amcache_file_from_root(amcache):
+    print("[*] Processing Amcache.hve file...")
 
+    hive = Hive(amcache)
+    root = hive.get_key("Root")
+    # Processing InventoryApplications key
+    print("[*] Processing InventoryApplications Key...")
+    try:
+        inventory_application_key = root.get_subkey("InventoryApplication")
+        inventory_application_subkeys = inventory_application_key.iter_subkeys()
+        if inventory_application_subkeys is not None:
+            for key in inventory_application_subkeys:
+                name = key.get_value("Name")
+                if name is not None:
+                    found_browser = check_name_with_known_browsers(name, browser_name_threshold)
+                    if found_browser is not None:
+                        print("[*] Found " + name)
+                        get_database(found_browser)
+
+    except Exception as e:
+        print(e)
+        print("[!] Could not locate InventoryApplication key")
+        pass
+
+    print("[*] Processing InventoryApplicationFile key")
+    try:
+        inventory_application_file_key = root.get_subkey("InventoryApplicationFile")
+        inventory_application_subkeys = inventory_application_file_key.iter_subkeys()
+        if inventory_application_subkeys is not None:
+            for key in inventory_application_subkeys:
+                name = key.get_value("Name")
+                if name is not None:
+                    found_browser = check_name_with_known_browsers(name, browser_name_threshold)
+                    if found_browser is not None:
+                        print("[*] Found " + name)
+                        get_database(found_browser)
+    except Exception as e:
+        print(e)
+        print("[!] Could not locate InventoryApplicationFile key")
+        pass
