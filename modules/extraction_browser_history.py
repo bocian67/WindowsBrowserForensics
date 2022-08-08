@@ -24,6 +24,7 @@ def __init__():
     global browser_list
     global windows_version
     global category_filter
+    global found_browsers
 
     # Ask user which categories to choose from
     categories = category_filter.get_categories_from_source()
@@ -112,13 +113,16 @@ def __init__():
         for application in last_opened_applications:
             path = Path(application)
             found_browser = check_name_with_known_browsers(path.stem, browser_name_threshold)
-            if found_browser is not None:
-                get_database(found_browser)
+            if found_browser is not None and found_browser not in found_browsers:
+                found_browsers.append(found_browser)
+
+    get_databases()
 
     return start_time
 
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
+    global found_browsers
     value_name = value.name()
     print(value)
     try:
@@ -131,10 +135,11 @@ def check_registry_value_with_known_browsers(value, threshold=browser_name_thres
             display_name = value_name
 
     found_browser = check_name_with_known_browsers(display_name, threshold)
-    if found_browser is not None:
-        get_database(found_browser)
+    if found_browser is not None and found_browser not in found_browsers:
+        found_browsers.append(found_browser)
 
 
+# Obsolete
 def get_database(found_browser):
     global written_browser_count
     # Portable Browser
@@ -337,6 +342,7 @@ def extract_and_filter(database, file_name_directory, browser_name):
 
 
 def process_amcache_file_from_root(amcache):
+    global found_browsers
     print("[*] Processing Amcache.hve file...")
 
     hive = Hive(amcache)
@@ -351,9 +357,9 @@ def process_amcache_file_from_root(amcache):
                 name = key.get_value("Name")
                 if name is not None:
                     found_browser = check_name_with_known_browsers(name, browser_name_threshold)
-                    if found_browser is not None:
+                    if found_browser is not None and found_browser not in found_browsers:
                         print("[*] Found " + name)
-                        get_database(found_browser)
+                        found_browsers.append(found_browser)
 
     except Exception as e:
         print(e)
@@ -369,9 +375,10 @@ def process_amcache_file_from_root(amcache):
                 name = key.get_value("Name")
                 if name is not None:
                     found_browser = check_name_with_known_browsers(name, browser_name_threshold)
-                    if found_browser is not None:
+                    if found_browser is not None and found_browser not in found_browsers:
                         print("[*] Found " + name)
-                        get_database(found_browser)
+                        found_browsers.append(found_browser)
+
     except Exception as e:
         print(e)
         print("[!] Could not locate InventoryApplicationFile key")
