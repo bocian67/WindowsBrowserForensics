@@ -42,11 +42,9 @@ def __init__():
     if category_filter.use_whitelist:
         for selection_id in selection:
             category_filter.add_category_to_whitelist(categories[selection_id])
-        print(category_filter.whitelist)
     else:
         for selection_id in selection:
             category_filter.add_category_to_blacklist(categories[selection_id])
-        print(category_filter.blacklist)
     start_time = time.time()
 
     # Load browser list from json
@@ -117,14 +115,24 @@ def __init__():
                 found_browsers.append(found_browser)
 
     get_databases()
-
+    print_total_browsers()
     return start_time
+
+
+def print_total_browsers():
+    global found_browsers
+    if len(found_browsers) > 0:
+        print(f"[*] Found these {len(found_browsers)} Browsers:")
+        for browser in found_browsers:
+            browser_name = browser["name"]
+            print(f"\t{browser_name}")
+    else:
+        print("[!] Could not find any browsers")
 
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
     global found_browsers
     value_name = value.name()
-    print(value)
     try:
         display_name = value.value("DisplayName").value()
         install_location = value.value("InstallLocation").value()
@@ -136,49 +144,8 @@ def check_registry_value_with_known_browsers(value, threshold=browser_name_thres
 
     found_browser = check_name_with_known_browsers(display_name, threshold)
     if found_browser is not None and found_browser not in found_browsers:
+        print("[*] Found " + display_name)
         found_browsers.append(found_browser)
-
-
-# Obsolete
-def get_database(found_browser):
-    global written_browser_count
-    # Portable Browser
-    if "portable" in found_browser and found_browser["portable"] is True:
-        # TODO: Portable browser db
-        pass
-    else:
-        # Get database location in Windows
-        if "databases" in found_browser:
-            databases = found_browser["databases"]
-            if windows_version in databases:
-                database_locations = databases[windows_version]
-            else:
-                default_version = databases["default"]
-                database_locations = databases[default_version]
-
-            database_name = databases["name"]
-            for database_location in database_locations:
-                # Replace <user> in database location
-                if "<user>" in database_location:
-                    for user in variables.users:
-                        user_database_location = database_location.replace("<user>", user)
-                        print(f"\t{user_database_location}")
-                        database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
-                        if database is not None:
-                            file_name_directory = "/".join([browser_directory_name, found_browser["name"], user, str(database_name)])
-                            if file_name_directory not in written_browser_count:
-                                written_browser_count[file_name_directory] = 1
-                            extract_and_filter(database, file_name_directory, found_browser["name"])
-                            written_browser_count[file_name_directory] += 1
-                else:
-                    print(f"\t{database_location}")
-                    database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
-                    if database is not None:
-                        file_name_directory = "/".join([browser_directory_name, found_browser["name"], str(database_name)])
-                        if file_name_directory not in written_browser_count:
-                            written_browser_count[file_name_directory] = 1
-                        extract_and_filter(database, file_name_directory, found_browser["name"])
-                        written_browser_count[file_name_directory] += 1
 
 
 def get_databases():
@@ -206,19 +173,25 @@ def get_databases():
                     if "<user>" in database_location:
                         for user in variables.users:
                             user_database_location = database_location.replace("<user>", user)
-                            print(f"\t{user_database_location}")
-                            database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
+                            browser_name = found_browser["name"]
+                            print(f"\tDatabase Location for {browser_name}: {user_database_location}")
+                            database = variables.tsk_util.recurse_files(database_name, user_database_location,
+                                                                        "equals", False, True)
                             if database is not None:
-                                file_name_directory = "/".join([browser_directory_name, found_browser["name"], user, str(database_name)])
+                                file_name_directory = "/".join([browser_directory_name, found_browser["name"],
+                                                                user, str(database_name)])
                                 if file_name_directory not in written_browser_count:
                                     written_browser_count[file_name_directory] = 1
                                 extract_and_filter(database, file_name_directory, found_browser["name"])
                                 written_browser_count[file_name_directory] += 1
                     else:
-                        print(f"\t{database_location}")
-                        database = variables.tsk_util.recurse_files(database_name, user_database_location, "equals", False, True)
+                        browser_name = found_browser["name"]
+                        print(f"\tDatabase Location for {browser_name}: {database_location}")
+                        database = variables.tsk_util.recurse_files(database_name, database_location, "equals",
+                                                                    False, True)
                         if database is not None:
-                            file_name_directory = "/".join([browser_directory_name, found_browser["name"], str(database_name)])
+                            file_name_directory = "/".join([browser_directory_name, found_browser["name"],
+                                                            str(database_name)])
                             if file_name_directory not in written_browser_count:
                                 written_browser_count[file_name_directory] = 1
                             extract_and_filter(database, file_name_directory, found_browser["name"])
@@ -351,15 +324,13 @@ def process_amcache_file_from_root(amcache):
     print("[*] Processing InventoryApplications Key...")
     try:
         inventory_application_key = root.get_subkey("InventoryApplication")
-        inventory_application_subkeys = inventory_application_key.iter_subkeys()
-        if inventory_application_subkeys is not None:
-            for key in inventory_application_subkeys:
-                name = key.get_value("Name")
-                if name is not None:
-                    found_browser = check_name_with_known_browsers(name, browser_name_threshold)
-                    if found_browser is not None and found_browser not in found_browsers:
-                        print("[*] Found " + name)
-                        found_browsers.append(found_browser)
+        for key in inventory_application_key.iter_subkeys():
+            name = key.get_value("Name")
+            if name is not None:
+                found_browser = check_name_with_known_browsers(name, browser_name_threshold)
+                if found_browser is not None and found_browser not in found_browsers:
+                    print("[*] Found " + name)
+                    found_browsers.append(found_browser)
 
     except Exception as e:
         print(e)
@@ -369,15 +340,13 @@ def process_amcache_file_from_root(amcache):
     print("[*] Processing InventoryApplicationFile key")
     try:
         inventory_application_file_key = root.get_subkey("InventoryApplicationFile")
-        inventory_application_subkeys = inventory_application_file_key.iter_subkeys()
-        if inventory_application_subkeys is not None:
-            for key in inventory_application_subkeys:
-                name = key.get_value("Name")
-                if name is not None:
-                    found_browser = check_name_with_known_browsers(name, browser_name_threshold)
-                    if found_browser is not None and found_browser not in found_browsers:
-                        print("[*] Found " + name)
-                        found_browsers.append(found_browser)
+        for key in inventory_application_file_key.iter_subkeys():
+            name = key.get_value("Name")
+            if name is not None:
+                found_browser = check_name_with_known_browsers(name, browser_name_threshold)
+                if found_browser is not None and found_browser not in found_browsers:
+                    print("[*] Found " + name)
+                    found_browsers.append(found_browser)
 
     except Exception as e:
         print(e)
