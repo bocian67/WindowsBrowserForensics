@@ -64,8 +64,7 @@ def __init__():
     print(f"Windows Version: {windows_version}")
 
     # Uninstall key
-    software_root = software_hive.root()
-    process_uninstall_key_from_root(software_root)
+    process_uninstall_key_from_root(software_hive)
 
     # StartMenuInternet key
     process_start_menu_internet_from_root(software_hive)
@@ -76,9 +75,9 @@ def __init__():
         print("[!] Could not find Amcache.hve")
     else:
         try:
-            #amcache_hive = open_file_as_reg(amcache[0][2])
-            #amcache_hive_root = amcache_hive.root()
-            process_amcache_file_from_root(amcache[0][2])
+            hive = open_file_as_reg(amcache[0][2])
+            root = hive.get_key("Root")
+            process_amcache_file_from_root(root)
         except:
             print("[!] Could not parse Amcache.hve")
 
@@ -90,18 +89,15 @@ def __init__():
         user_hive = open_file_as_reg(ntuser[0][2])
 
         # Uninstall Keys from user
-        user_hive_root = user_hive.root()
         try:
             print(f"\n[*] Getting uninstall keys from user {user}...\n")
-            user_software_hive = user_hive_root.find_key("SOFTWARE")
-            process_uninstall_key_from_root(user_software_hive)
+            process_uninstall_key_from_root(user_hive, True)
         except:
             print("[!] Could not find User SOFTWARE Hive")
 
         try:
             print(f"\n[*] Getting StartMenuInternet keys from user {user}...\n")
-            user_software_hive = user_hive_root.find_key("SOFTWARE")
-            process_start_menu_internet_from_root(user_software_hive)
+            process_start_menu_internet_from_root(user_hive, True)
         except:
             print("[!] Could not find User SOFTWARE Hive")
 
@@ -132,13 +128,17 @@ def print_total_browsers():
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
     global found_browsers
-    value_name = value.name()
+    value_name = value.name
     try:
-        display_name = value.value("DisplayName").value()
-        install_location = value.value("InstallLocation").value()
+        display_name = value.get_value("DisplayName")
+        if display_name is None:
+            display_name = value.get_value("")
+            if display_name is None:
+                display_name = value_name
+        install_location = value.get_value("InstallLocation")
     except:
         try:
-            display_name = value.value("").value()
+            display_name = value.get_value("")
         except:
             display_name = value_name
 
@@ -215,81 +215,107 @@ def check_name_with_known_browsers(display_name, threshold=browser_name_threshol
 
 
 def process_recent_opened_applications(hive):
-    root = hive.root()
     applications = []
     try:
-        userassist = root.find_key("SOFTWARE")\
-            .find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Explorer")\
-            .find_key("UserAssist")
-        userassist_guids = userassist.subkeys()
-
-        for guid in userassist_guids:
-            count = guid.find_key("Count")
-            count_values = count.values()
-            for key in count_values:
-                key_name = decode_value(key.name())
+        userassist = hive.get_key("SOFTWARE")
+        userassist = userassist.get_subkey("Microsoft")
+        userassist = userassist.get_subkey("Windows")
+        userassist = userassist.get_subkey("CurrentVersion")
+        userassist = userassist.get_subkey("Explorer")
+        userassist = userassist.get_subkey("UserAssist")
+        for guid in userassist.iter_subkeys():
+            count = guid.get_subkey("Count")
+            for key in count.iter_values():
+                key_name = decode_value(key.name)
                 applications.append(key_name)
-    except:
+    except Exception as e:
+        print(e)
         print("[!] Error getting last opened applications")
     return applications
 
 
-def process_start_menu_internet_from_root(root):
-    print("\n[*] Looking for StartMenuInternet key...\n")
+def process_start_menu_internet_from_root(root, is_user_hive=False):
+    print("\n[*] Looking for StartMenuInternet key...")
     try:
         print("[*] for x86 bit systems...")
-        uninstall_key = root.find_key("WOW6432Node")\
-            .find_key("Clients")\
-            .find_key("StartMenuInternet")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-
-    except:
+        if is_user_hive:
+            uninstall_key = root.get_key("SOFTWARE")
+            uninstall_key = uninstall_key.get_subkey("WOW6432Node")
+            uninstall_key = uninstall_key.get_subkey("Clients")
+            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        else:
+            uninstall_key = root.get_key("WOW6432Node")
+            uninstall_key = uninstall_key.get_subkey("Clients")
+            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        for value in uninstall_key.iter_subkeys():
+            if value is not None:
+                check_registry_value_with_known_browsers(value)
+    except Exception as e:
+        print(e)
         print("[!] Error finding StartMenuInternet key")
 
     try:
         print("[*] for x64 bit systems...")
-        uninstall_key = root.find_key("Clients")\
-            .find_key("StartMenuInternet")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-
-    except:
+        if is_user_hive:
+            uninstall_key = root.get_key("SOFTWARE")
+            uninstall_key = uninstall_key.get_subkey("Clients")
+            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        else:
+            uninstall_key = root.get_key("Clients")
+            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        for value in uninstall_key.iter_subkeys():
+            if value is not None:
+                check_registry_value_with_known_browsers(value)
+    except Exception as e:
+        print(e)
         print("[!] Error finding StartMenuInternet key")
 
 
-def process_uninstall_key_from_root(root):
-    print("\n[*] Processing uninstall keys from hive...\n")
+def process_uninstall_key_from_root(root, is_user_hive=False):
+    print("\n[*] Processing uninstall keys from hive...")
     # x32
     print("[*] looking in x32 bit location...")
     try:
-        uninstall_key = root.find_key("WOW6432Node")\
-            .find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Uninstall")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-    except:
+        if is_user_hive:
+            uninstall_key = root.get_key("SOFTWARE")
+            uninstall_key = uninstall_key.get_subkey("WOW6432Node")
+            uninstall_key = uninstall_key.get_subkey("Microsoft")
+            uninstall_key = uninstall_key.get_subkey("Windows")
+            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+            uninstall_key = uninstall_key.get_subkey("Uninstall")
+
+        else:
+            uninstall_key = root.get_key("WOW6432Node")
+            uninstall_key = uninstall_key.get_subkey("Microsoft")
+            uninstall_key = uninstall_key.get_subkey("Windows")
+            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+            uninstall_key = uninstall_key.get_subkey("Uninstall")
+        for value in uninstall_key.iter_subkeys():
+            if value is not None:
+                check_registry_value_with_known_browsers(value)
+    except Exception as e:
+        print(e)
         print("[!] Error finding uninstall key")
 
     # x64
     print("[*] looking in x64 bit location...")
     try:
-        uninstall_key = root.find_key("Microsoft")\
-            .find_key("Windows")\
-            .find_key("CurrentVersion")\
-            .find_key("Uninstall")
-        subkeys = uninstall_key.subkeys()
-        for value in subkeys:
-            check_registry_value_with_known_browsers(value)
-    except:
+        if is_user_hive:
+            uninstall_key = root.get_key("SOFTWARE")
+            uninstall_key = uninstall_key.get_subkey("Microsoft")
+            uninstall_key = uninstall_key.get_subkey("Windows")
+            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+            uninstall_key = uninstall_key.get_subkey("Uninstall")
+        else:
+            uninstall_key = root.get_key("Microsoft")
+            uninstall_key = uninstall_key.get_subkey("Windows")
+            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+            uninstall_key = uninstall_key.get_subkey("Uninstall")
+        for value in uninstall_key.iter_subkeys():
+            if value is not None:
+                check_registry_value_with_known_browsers(value)
+    except Exception as e:
+        print(e)
         print("[!] Error finding uninstall key")
 
 
@@ -314,12 +340,10 @@ def extract_and_filter(database, file_name_directory, browser_name):
         browser.filter_history(category_filter)
 
 
-def process_amcache_file_from_root(amcache):
+def process_amcache_file_from_root(root):
     global found_browsers
     print("[*] Processing Amcache.hve file...")
 
-    hive = Hive(amcache)
-    root = hive.get_key("Root")
     # Processing InventoryApplications key
     print("[*] Processing InventoryApplications Key...")
     try:

@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 from io import BytesIO
 from pathlib import Path
 
-from Registry import Registry
+from extensions.Hive import Hive
 from win32_setctime import setctime
 
 import variables
@@ -43,14 +43,12 @@ def make_image(out_dir):
     execution = [str(dd_path), "if=\\\\.\\" + str(variables.temp_output_dir), "of=" + str(out_dir_path), "bs=512k"]
     subprocess.run(execution)
 
-    # TODO: dann temp_output_dir wieder leer machen? mit @vicky bereden
-
 
 def open_file_as_reg(reg_file):
     file_size = reg_file.info.meta.size
     file_content = reg_file.read_random(0, file_size)
     file_like_obj = BytesIO(file_content)
-    return Registry.Registry(file_like_obj)
+    return Hive(file_like_obj)
 
 
 def parse_windows_filetime(date_value):
@@ -113,15 +111,11 @@ def extract_file_and_get_path(file, file_name, count_file_name):
 
 
 def get_windows_version(hive):
-    root = hive.root()
-    current_version = root.find_key("Microsoft") \
-        .find_key("Windows NT") \
-        .find_key("CurrentVersion")
-    value = str(current_version.value("ProductName").value())
+    current_version = hive.get_key("SOFTWARE\Microsoft\Windows NT\CurrentVersion")
+    value = str(current_version.get_value("ProductName"))
     regex_match = re.search("Windows (\w+) \w+", value)
     if regex_match:
         value = regex_match.group(1)
-
     return value
 
 

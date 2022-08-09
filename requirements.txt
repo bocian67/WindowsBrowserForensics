@@ -1,7 +1,6 @@
 pytsk3
 registry
 libewf-python
-python-registry
 unicode
 win32-setctime
 openpyxl

@@ -10,11 +10,7 @@ class Hive(RegistryHive):
         self.partial_hive_path = None
         self.hive_type = None
 
-        file_size = hive.info.meta.size
-        file_content = hive.read_random(0, file_size)
-        file_like_obj = BytesIO(file_content)
-
-        self._stream = file_like_obj
+        self._stream = hive
 
         with boomerang_stream(self._stream) as s:
             self.header = REGF_HEADER.parse_stream(s)
