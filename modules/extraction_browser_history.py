@@ -109,7 +109,6 @@ def __init__():
             found_browser = check_name_with_known_browsers(path.stem, browser_name_threshold)
             if found_browser is not None and found_browser not in found_browsers:
                 found_browsers.append(found_browser)
-
     get_databases()
     print_total_browsers()
     return start_time
@@ -241,12 +240,10 @@ def process_start_menu_internet_from_root(root, is_user_hive=False):
         if is_user_hive:
             uninstall_key = root.get_key("SOFTWARE")
             uninstall_key = uninstall_key.get_subkey("WOW6432Node")
-            uninstall_key = uninstall_key.get_subkey("Clients")
-            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         else:
             uninstall_key = root.get_key("WOW6432Node")
-            uninstall_key = uninstall_key.get_subkey("Clients")
-            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        uninstall_key = uninstall_key.get_subkey("Clients")
+        uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         for value in uninstall_key.iter_subkeys():
             if value is not None:
                 check_registry_value_with_known_browsers(value)
@@ -259,10 +256,9 @@ def process_start_menu_internet_from_root(root, is_user_hive=False):
         if is_user_hive:
             uninstall_key = root.get_key("SOFTWARE")
             uninstall_key = uninstall_key.get_subkey("Clients")
-            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         else:
             uninstall_key = root.get_key("Clients")
-            uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
+        uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         for value in uninstall_key.iter_subkeys():
             if value is not None:
                 check_registry_value_with_known_browsers(value)
@@ -279,17 +275,12 @@ def process_uninstall_key_from_root(root, is_user_hive=False):
         if is_user_hive:
             uninstall_key = root.get_key("SOFTWARE")
             uninstall_key = uninstall_key.get_subkey("WOW6432Node")
-            uninstall_key = uninstall_key.get_subkey("Microsoft")
-            uninstall_key = uninstall_key.get_subkey("Windows")
-            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
-            uninstall_key = uninstall_key.get_subkey("Uninstall")
-
         else:
             uninstall_key = root.get_key("WOW6432Node")
-            uninstall_key = uninstall_key.get_subkey("Microsoft")
-            uninstall_key = uninstall_key.get_subkey("Windows")
-            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
-            uninstall_key = uninstall_key.get_subkey("Uninstall")
+        uninstall_key = uninstall_key.get_subkey("Microsoft")
+        uninstall_key = uninstall_key.get_subkey("Windows")
+        uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+        uninstall_key = uninstall_key.get_subkey("Uninstall")
         for value in uninstall_key.iter_subkeys():
             if value is not None:
                 check_registry_value_with_known_browsers(value)
@@ -303,14 +294,11 @@ def process_uninstall_key_from_root(root, is_user_hive=False):
         if is_user_hive:
             uninstall_key = root.get_key("SOFTWARE")
             uninstall_key = uninstall_key.get_subkey("Microsoft")
-            uninstall_key = uninstall_key.get_subkey("Windows")
-            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
-            uninstall_key = uninstall_key.get_subkey("Uninstall")
         else:
             uninstall_key = root.get_key("Microsoft")
-            uninstall_key = uninstall_key.get_subkey("Windows")
-            uninstall_key = uninstall_key.get_subkey("CurrentVersion")
-            uninstall_key = uninstall_key.get_subkey("Uninstall")
+        uninstall_key = uninstall_key.get_subkey("Windows")
+        uninstall_key = uninstall_key.get_subkey("CurrentVersion")
+        uninstall_key = uninstall_key.get_subkey("Uninstall")
         for value in uninstall_key.iter_subkeys():
             if value is not None:
                 check_registry_value_with_known_browsers(value)

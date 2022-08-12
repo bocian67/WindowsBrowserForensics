@@ -1,5 +1,4 @@
 # -*- encoding: utf-8 -*-
-import re
 from abc import ABCMeta, abstractmethod
 import sqlite3
 import pyesedb
@@ -15,13 +14,6 @@ class Browser:
         raise NotImplementedError
 
 
-"""
-moz_annos: Downloads, ID === ID von History
-moz_places: History, ID universal
-moz_historyvisits: Vergangene Website besuche, ID === ID von History
-"""
-
-
 class Firefox(Browser):
     def __init__(self, location):
         self.location = location
@@ -31,34 +23,34 @@ class Firefox(Browser):
 
     def filter_history(self, category_filter):
         db = sqlite3.connect(self.location)
-        cursor = db.cursor()
-        cursor.execute(self.GET_ALL_HISTORY)
-        filter_list = category_filter.get_filter_list()
-        for item in cursor.fetchall():
+        for item in db.execute(self.GET_ALL_HISTORY):
             history_id = item[0]
             url_id = item[1]
             url_string = item[2]
             found_match = False
             # Only keep items that are in the whitelist
             if category_filter.use_whitelist:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.whitelist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if not found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
-                    db.commit()
             # Only delete things that are in the blacklist
             else:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.blacklist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
-                    db.commit()
+        db.commit()
 
 
 class Chrome(Browser):
@@ -70,34 +62,34 @@ class Chrome(Browser):
 
     def filter_history(self, category_filter):
         db = sqlite3.connect(self.location)
-        cursor = db.cursor()
-        cursor.execute(self.GET_JOINED_HISTORY)
-        filter_list = category_filter.get_filter_list()
-        for item in cursor.fetchall():
+        for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
             found_match = False
             # Only keep items that are in the whitelist
             if category_filter.use_whitelist:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.whitelist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if not found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
             # Only delete things that are in the blacklist
             else:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.blacklist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
+        db.commit()
 
 
 class Opera(Browser):
@@ -109,34 +101,34 @@ class Opera(Browser):
 
     def filter_history(self, category_filter):
         db = sqlite3.connect(self.location)
-        cursor = db.cursor()
-        cursor.execute(self.GET_JOINED_HISTORY)
-        filter_list = category_filter.get_filter_list()
-        for item in cursor.fetchall():
+        for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
             found_match = False
             # Only keep items that are in the whitelist
             if category_filter.use_whitelist:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.whitelist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if not found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
             # Only delete things that are in the blacklist
             else:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.blacklist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
+        db.commit()
 
 
 class Edge(Browser):
@@ -148,34 +140,34 @@ class Edge(Browser):
 
     def filter_history(self, category_filter):
         db = sqlite3.connect(self.location)
-        cursor = db.cursor()
-        cursor.execute(self.GET_JOINED_HISTORY)
-        filter_list = category_filter.get_filter_list()
-        for item in cursor.fetchall():
+        for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
             found_match = False
             # Only keep items that are in the whitelist
             if category_filter.use_whitelist:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.whitelist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if not found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
-            # Only delete things that are in the blacklist
+                # Only delete things that are in the blacklist
             else:
-                for item_filter in filter_list:
-                    if re.match(r"(^|^[^:]+:\/\/|[^\.]+\.)" + item_filter, str(url_string)):
+                for category in category_filter.blacklist:
+                    match = category_filter.find_match_in_category(category, str(url_string))
+                    if match is True:
                         found_match = True
                         break
                 if found_match:
+                    cursor = db.cursor()
                     cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
                     cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-                    db.commit()
+        db.commit()
 
 
 # TODO: Delete is not implemented
