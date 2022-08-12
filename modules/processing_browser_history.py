@@ -27,29 +27,20 @@ class Firefox(Browser):
             history_id = item[0]
             url_id = item[1]
             url_string = item[2]
-            found_match = False
-            # Only keep items that are in the whitelist
-            if category_filter.use_whitelist:
-                for category in category_filter.whitelist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if not found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
-            # Only delete things that are in the blacklist
-            else:
-                for category in category_filter.blacklist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
+            match = category_filter.get_url_category(str(url_string))
+            if match is not None:
+                # Only keep items that are in the whitelist
+                if category_filter.use_whitelist:
+                    if match not in category_filter.whitelist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
+                # Only delete things that are in the blacklist
+                else:
+                    if match in category_filter.blacklist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
         db.commit()
 
 
@@ -66,29 +57,20 @@ class Chrome(Browser):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
-            found_match = False
-            # Only keep items that are in the whitelist
-            if category_filter.use_whitelist:
-                for category in category_filter.whitelist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if not found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-            # Only delete things that are in the blacklist
-            else:
-                for category in category_filter.blacklist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+            match = category_filter.get_url_category(str(url_string))
+            if match is not None:
+                # Only keep items that are in the whitelist
+                if category_filter.use_whitelist:
+                    if match not in category_filter.whitelist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+                # Only delete things that are in the blacklist
+                else:
+                    if match in category_filter.blacklist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
         db.commit()
 
 
@@ -105,29 +87,20 @@ class Opera(Browser):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
-            found_match = False
-            # Only keep items that are in the whitelist
-            if category_filter.use_whitelist:
-                for category in category_filter.whitelist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if not found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
-            # Only delete things that are in the blacklist
-            else:
-                for category in category_filter.blacklist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+            match = category_filter.get_url_category(str(url_string))
+            if match is not None:
+                # Only keep items that are in the whitelist
+                if category_filter.use_whitelist:
+                    if match not in category_filter.whitelist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+                # Only delete things that are in the blacklist
+                else:
+                    if match in category_filter.blacklist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
         db.commit()
 
 
@@ -144,29 +117,20 @@ class Edge(Browser):
             visit_id = item[0]
             url_id = item[1]
             url_string = item[2]
-            found_match = False
-            # Only keep items that are in the whitelist
-            if category_filter.use_whitelist:
-                for category in category_filter.whitelist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if not found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+            match = category_filter.get_url_category(str(url_string))
+            if match is not None:
+                # Only keep items that are in the whitelist
+                if category_filter.use_whitelist:
+                    if match not in category_filter.whitelist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
                 # Only delete things that are in the blacklist
-            else:
-                for category in category_filter.blacklist:
-                    match = category_filter.find_match_in_category(category, str(url_string))
-                    if match is True:
-                        found_match = True
-                        break
-                if found_match:
-                    cursor = db.cursor()
-                    cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
-                    cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
+                else:
+                    if match in category_filter.blacklist:
+                        cursor = db.cursor()
+                        cursor.execute(self.DELETE_URLS_BY_ID, (url_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (visit_id,))
         db.commit()
 
 
