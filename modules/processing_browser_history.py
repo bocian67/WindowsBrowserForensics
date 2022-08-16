@@ -17,37 +17,37 @@ class Browser:
 class Firefox(Browser):
     def __init__(self, location):
         self.location = location
-        self.GET_ALL_HISTORY = "SELECT v.id, v.place_id, u.url from moz_historyvisits as v inner join moz_places as u on v.place_id = u.id"
+        self.GET_ALL_HISTORY = "SELECT v.id, v.place_id, u.url, u.id from moz_places as u left outer join moz_historyvisits as v on v.place_id = u.id"
         self.DELETE_URL_BY_ID = "DELETE FROM moz_places WHERE id = (?)"
         self.DELETE_VISITS_BY_ID = "DELETE FROM moz_historyvisits WHERE id = (?)"
 
     def filter_history(self, category_filter):
         db = sqlite3.connect(self.location)
         for item in db.execute(self.GET_ALL_HISTORY):
-            history_id = item[0]
-            url_id = item[1]
+            historyvisits_id = item[0]
             url_string = item[2]
+            places_id = item[3]
             match = category_filter.get_url_category(str(url_string))
             if match is not None:
                 # Only keep items that are in the whitelist
                 if category_filter.use_whitelist:
                     if match not in category_filter.whitelist:
                         cursor = db.cursor()
-                        cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
-                        cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
+                        cursor.execute(self.DELETE_URL_BY_ID, (places_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (historyvisits_id,))
                 # Only delete things that are in the blacklist
                 else:
                     if match in category_filter.blacklist:
                         cursor = db.cursor()
-                        cursor.execute(self.DELETE_URL_BY_ID, (url_id,))
-                        cursor.execute(self.DELETE_VISITS_BY_ID, (history_id,))
+                        cursor.execute(self.DELETE_URL_BY_ID, (places_id,))
+                        cursor.execute(self.DELETE_VISITS_BY_ID, (historyvisits_id,))
         db.commit()
 
 
 class Chrome(Browser):
     def __init__(self, location):
         self.location = location
-        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url from visits as v inner join urls as u on v.url = u.id"
+        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url, u.id from urls as u left outer join visits as v on v.url = u.id"
         self.DELETE_URLS_BY_ID = "DELETE FROM urls WHERE id = (?)"
         self.DELETE_VISITS_BY_ID = "DELETE FROM visits WHERE id = (?)"
 
@@ -55,8 +55,8 @@ class Chrome(Browser):
         db = sqlite3.connect(self.location)
         for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
-            url_id = item[1]
             url_string = item[2]
+            url_id = item[3]
             match = category_filter.get_url_category(str(url_string))
             if match is not None:
                 # Only keep items that are in the whitelist
@@ -77,7 +77,7 @@ class Chrome(Browser):
 class Opera(Browser):
     def __init__(self, location):
         self.location = location
-        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url from visits as v inner join urls as u on v.url = u.id;"
+        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url, u.id from urls as u left outer join visits as v on v.url = u.id"
         self.DELETE_URLS_BY_ID = "DELETE FROM urls WHERE id = (?)"
         self.DELETE_VISITS_BY_ID = "DELETE FROM visits WHERE id = (?)"
 
@@ -85,8 +85,8 @@ class Opera(Browser):
         db = sqlite3.connect(self.location)
         for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
-            url_id = item[1]
             url_string = item[2]
+            url_id = item[3]
             match = category_filter.get_url_category(str(url_string))
             if match is not None:
                 # Only keep items that are in the whitelist
@@ -107,7 +107,7 @@ class Opera(Browser):
 class Edge(Browser):
     def __init__(self, location):
         self.location = location
-        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url from visits as v inner join urls as u on v.url = u.id"
+        self.GET_JOINED_HISTORY = "SELECT v.id, v.url, u.url, u.id from urls as u left outer join visits as v on v.url = u.id"
         self.DELETE_URLS_BY_ID = "DELETE FROM urls WHERE id = (?)"
         self.DELETE_VISITS_BY_ID = "DELETE FROM visits WHERE id = (?)"
 
@@ -115,8 +115,8 @@ class Edge(Browser):
         db = sqlite3.connect(self.location)
         for item in db.execute(self.GET_JOINED_HISTORY):
             visit_id = item[0]
-            url_id = item[1]
             url_string = item[2]
+            url_id = item[3]
             match = category_filter.get_url_category(str(url_string))
             if match is not None:
                 # Only keep items that are in the whitelist
