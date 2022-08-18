@@ -38,9 +38,9 @@ def main(evidence, image_type, temp_drive, out_dir):
 
 def make_image(out_dir):
     # Make image from partition
-    out_dir_path = Path(out_dir) / "image.dd"
-    dd_path = Path(os.path.realpath(__file__)).parent.joinpath("dd/dd.exe")
-    execution = [str(dd_path), "if=\\\\.\\" + str(variables.temp_output_dir), "of=" + str(out_dir_path), "bs=512k"]
+    out_dir_path = Path(out_dir) / "image"
+    fkt_path = Path(os.path.realpath(__file__)).parent.joinpath("ftkimager/ftkimager.exe")
+    execution = [str(fkt_path), str(variables.temp_output_dir), "--e01", str(out_dir_path), "--compress", "9"]
     subprocess.run(execution)
 
 
