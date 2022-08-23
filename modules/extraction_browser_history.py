@@ -71,7 +71,7 @@ def __init__():
 
     # Get Amcache.hve
     amcache = variables.tsk_util.recurse_files("Amcache.hve", "/Windows/appcompat/Programs", "equals", False, False)
-    if len(amcache) == 0:
+    if amcache and len(amcache) == 0:
         print("[!] Could not find Amcache.hve")
     else:
         try:

@@ -23,7 +23,7 @@
     },
     {
       "name": "Internet Explorer",
-      "references": ["IE"],
+      "references": ["IE", "IEEXPLORE"],
       "databases": {
         "default": "10",
         "name": "WebCacheV01.dat",
