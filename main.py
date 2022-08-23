@@ -123,8 +123,8 @@ if __name__ == '__main__':
     parser = ArgumentParser('Evidence from Windows Registry')
     parser.add_argument('EVIDENCE_FILE', help="Path to evidence file")
     parser.add_argument('IMAGE_TYPE', help="Evidence file format", choices=('ewf', 'raw'))
-    parser.add_argument('TEMP_DRIVE', help="Path to output directory for browser databases")
-    parser.add_argument('OUTPUT_DIR', help="Path to output directory for browser databases")
+    parser.add_argument('TEMP_DRIVE', help="Path to temporary output directory for browser databases")
+    parser.add_argument('OUTPUT_DIR', help="Path to output directory for database image")
     args = parser.parse_args()
 
     main(args.EVIDENCE_FILE, args.IMAGE_TYPE, args.TEMP_DRIVE, args.OUTPUT_DIR)
