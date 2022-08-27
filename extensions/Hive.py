@@ -1,11 +1,10 @@
-from io import BytesIO
-
 from regipy.registry import RegistryHive, NKRecord
 from regipy.structs import REGF_HEADER
 from regipy.utils import boomerang_stream, identify_hive_type
 
 
 class Hive(RegistryHive):
+    # Extension method for regipy registry to open file as stream object
     def __init__(self, hive):
         self.partial_hive_path = None
         self.hive_type = None

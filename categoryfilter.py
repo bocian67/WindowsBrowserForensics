@@ -6,6 +6,7 @@ import sqlite3
 
 class CategoryFilter:
     def __init__(self, whitelist=None, blacklist=None, use_whitelist=True):
+        # Set empty lists
         if blacklist is None:
             blacklist = []
         if whitelist is None:
@@ -14,12 +15,14 @@ class CategoryFilter:
         self.blacklist = blacklist
         self.use_whitelist = use_whitelist
 
+        # Open database for categories
         db_path = pathlib.Path(__file__).parent.joinpath("Linkcollection.sqlite")
         self.db = sqlite3.connect(db_path, check_same_thread=False)
         self.db_cursor = self.db.cursor()
 
     def get_categories_from_source(self):
         categories = []
+        # Read categories from database and return
         GET_CATEGORIES = """select distinct category from urls;"""
         self.db_cursor.execute(GET_CATEGORIES)
         db_categories = self.db_cursor.fetchall()
@@ -28,9 +31,11 @@ class CategoryFilter:
         return categories
 
     def get_url_category(self, item):
+        # Get category from url using the url base
         GET_URL_CATEGORY = """select category from urls where urls.url=(?)"""
         match = re.match(r"((http:\/\/)?(https:\/\/)?((\w*[-]*)+(\.)*)+)", item)
         if match:
+            # If match, found url base, find in database and return
             cursor = self.db.execute(GET_URL_CATEGORY, (match[0],))
             row = cursor.fetchone()
             if row is not None:

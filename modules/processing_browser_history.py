@@ -7,6 +7,7 @@ browser_directory_name = "browser_history"
 
 
 class Browser:
+    # Parent class, browsers should implement this
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -22,12 +23,15 @@ class Firefox(Browser):
         self.DELETE_VISITS_BY_ID = "DELETE FROM moz_historyvisits WHERE id = (?)"
 
     def filter_history(self, category_filter):
+        # Filter history using browser database and category filter
         db = sqlite3.connect(self.location)
         for item in db.execute(self.GET_ALL_HISTORY):
+            # Using the history, get ids and url from table
             historyvisits_id = item[0]
             url_string = item[2]
             places_id = item[3]
             match = category_filter.get_url_category(str(url_string))
+            # If a match in the url base was found, use filter
             if match is not None:
                 # Only keep items that are in the whitelist
                 if category_filter.use_whitelist:
@@ -35,8 +39,8 @@ class Firefox(Browser):
                         cursor = db.cursor()
                         cursor.execute(self.DELETE_URL_BY_ID, (places_id,))
                         cursor.execute(self.DELETE_VISITS_BY_ID, (historyvisits_id,))
-                # Only delete things that are in the blacklist
                 else:
+                    # Only delete things that are in the blacklist
                     if match in category_filter.blacklist:
                         cursor = db.cursor()
                         cursor.execute(self.DELETE_URL_BY_ID, (places_id,))

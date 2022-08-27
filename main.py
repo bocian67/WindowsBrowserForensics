@@ -21,9 +21,9 @@ from modules import extraction_browser_history
 
 def main(evidence, image_type, temp_drive, out_dir):
     variables.temp_output_dir = temp_drive
-
+    # Initialize TSK Util as variable with evidence and type
     variables.tsk_util = TSKUtil(evidence, image_type)
-
+    # Get users from evidence, store in variables
     variables.users = variables.tsk_util.find_users("/users")
 
     # Use modules
@@ -33,6 +33,7 @@ def main(evidence, image_type, temp_drive, out_dir):
     make_image(out_dir)
 
     end_time = time.time()
+    # Print runtime
     print("[*] Duration: " + str(end_time - start_time) + " seconds")
 
 
@@ -45,6 +46,7 @@ def make_image(out_dir):
 
 
 def open_file_as_reg(reg_file):
+    # Read file as stream and open as registry hive
     file_size = reg_file.info.meta.size
     file_content = reg_file.read_random(0, file_size)
     file_like_obj = BytesIO(file_content)
@@ -62,6 +64,7 @@ def parse_unix_epoch(date_value):
     return ts.strftime('%Y-%m-%d %H:%M:%S.%f')
 
 
+# Decode ROT13 value with or without GUID
 def decode_value(value):
     guid_regex = re.compile("{[\s\S]+}")
     has_guid = guid_regex.search(value)
@@ -82,10 +85,12 @@ def extract_file_and_get_path(file, file_name, count_file_name):
     atime = file.info.meta.atime
     mtime = file.info.meta.mtime
 
+    # Read content and create directory
     file_content = file.read_random(0, file_size)
     path = Path(variables.temp_output_dir).joinpath(file_name)
     os.makedirs(path.parent, exist_ok=True)
 
+    # Adjust file name using counter
     file_name_without_ext = path.stem
     ext = path.suffix
     file_name_without_ext += "_" + str(count_file_name)
@@ -103,7 +108,6 @@ def extract_file_and_get_path(file, file_name, count_file_name):
         Things I tried:
             - using exFAT, but this changes the date -> time is gone
             - making the partition read only after writing files but time changes
-            - Using FTK instead of dd for Windows
         """
     except:
         pass

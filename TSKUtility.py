@@ -5,8 +5,6 @@ import sys
 import pyewf
 from datetime import datetime
 
-# TODO: Rewrite to meet minimal requirements
-
 """
 MIT License
 
@@ -55,6 +53,7 @@ class EWFImgInfo(pytsk3.Img_Info):
 
 
 class TSKUtil(object):
+    # Set file and type
     def __init__(self, evidence, image_type):
         self.evidence = evidence
         self.image_type = image_type
@@ -193,7 +192,6 @@ class TSKUtil(object):
                 continue
             try:
                 file_path = "{}/{}".format("/".join(parent), file_name)
-                # print(file_path)
                 try:
                     if fs_object.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR:
                         f_type = "DIR"

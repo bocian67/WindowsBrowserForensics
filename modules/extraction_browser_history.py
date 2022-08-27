@@ -6,7 +6,6 @@ from pathlib import Path
 
 from Menu import Menu
 from categoryfilter import CategoryFilter
-from extensions.Hive import Hive
 from main import decode_value, open_file_as_reg, get_windows_version, extract_file_and_get_path
 import variables
 from modules.processing_browser_history import Firefox, Chrome, Opera, Edge
@@ -39,6 +38,7 @@ def __init__():
     menu = Menu("Wähle die zu nutzenden Kategorien aus", categories,
                            epilogue="Zum Beispiel: 1,2,3 oder 1-4 oder 1,3-4\n")
     selection = menu.show()
+    # Add categories to list
     if category_filter.use_whitelist:
         for selection_id in selection:
             category_filter.add_category_to_whitelist(categories[selection_id])
@@ -126,9 +126,11 @@ def print_total_browsers():
 
 
 def check_registry_value_with_known_browsers(value, threshold=browser_name_threshold):
+    # Compare application name with known browsers
     global found_browsers
     value_name = value.name
     try:
+        # Get any application name
         display_name = value.get_value("DisplayName")
         if display_name is None:
             display_name = value.get_value("")
@@ -140,7 +142,7 @@ def check_registry_value_with_known_browsers(value, threshold=browser_name_thres
             display_name = value.get_value("")
         except:
             display_name = value_name
-
+    # Compare application name, if found and new: Add to found_browsers
     found_browser = check_name_with_known_browsers(display_name, threshold)
     if found_browser is not None and found_browser not in found_browsers:
         print("[*] Found " + display_name)
@@ -148,6 +150,7 @@ def check_registry_value_with_known_browsers(value, threshold=browser_name_thres
 
 
 def get_databases():
+    # Get databases from found browsers list
     global written_browser_count
     global found_browsers
 
@@ -171,14 +174,18 @@ def get_databases():
                     # Replace <user> in database location
                     if "<user>" in database_location:
                         for user in variables.users:
+                            # Get browser locations for each user
                             user_database_location = database_location.replace("<user>", user)
                             browser_name = found_browser["name"]
                             print(f"\tDatabase Location for {browser_name}: {user_database_location}")
+                            # Find database in directories
                             database = variables.tsk_util.recurse_files(database_name, user_database_location,
                                                                         "equals", False, True)
                             if database is not None:
+                                # Extract browser database
                                 file_name_directory = "/".join([browser_directory_name, found_browser["name"],
                                                                 user, str(database_name)])
+                                # Increase written_browser_count to detect multiple browser databases
                                 if file_name_directory not in written_browser_count:
                                     written_browser_count[file_name_directory] = 1
                                 extract_and_filter(database, file_name_directory, found_browser["name"])
@@ -186,11 +193,14 @@ def get_databases():
                     else:
                         browser_name = found_browser["name"]
                         print(f"\tDatabase Location for {browser_name}: {database_location}")
+                        # Find database in directories
                         database = variables.tsk_util.recurse_files(database_name, database_location, "equals",
                                                                     False, True)
                         if database is not None:
+                            # Extract browser database
                             file_name_directory = "/".join([browser_directory_name, found_browser["name"],
                                                             str(database_name)])
+                            # Increase written_browser_count to detect multiple browser databases
                             if file_name_directory not in written_browser_count:
                                 written_browser_count[file_name_directory] = 1
                             extract_and_filter(database, file_name_directory, found_browser["name"])
@@ -198,13 +208,17 @@ def get_databases():
 
 
 def check_name_with_known_browsers(display_name, threshold=browser_name_threshold):
+    # Check application name with known browsers
     for browser in browser_list:
         browser_name = browser["name"]
+        # Compare names
         seq_ratio = SequenceMatcher(a=display_name, b=browser_name).ratio()
         if seq_ratio >= threshold:
+            # When threshold is reached, browser is detected
             print(f"[#] Browser: {display_name}")
             return browser
         else:
+            # Compare reference browser names
             for browser_ref in browser["references"]:
                 seq_ratio = SequenceMatcher(a=display_name, b=browser_ref).ratio()
                 if seq_ratio >= threshold:
@@ -214,6 +228,7 @@ def check_name_with_known_browsers(display_name, threshold=browser_name_threshol
 
 
 def process_recent_opened_applications(hive):
+    # Iterate over recent opened applications and return
     applications = []
     try:
         userassist = hive.get_key("SOFTWARE")
@@ -234,6 +249,7 @@ def process_recent_opened_applications(hive):
 
 
 def process_start_menu_internet_from_root(root, is_user_hive=False):
+    # Iterate over start menu internet entries in x64 and x32 places
     print("\n[*] Looking for StartMenuInternet key...")
     try:
         print("[*] for x86 bit systems...")
@@ -245,6 +261,7 @@ def process_start_menu_internet_from_root(root, is_user_hive=False):
         uninstall_key = uninstall_key.get_subkey("Clients")
         uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         for value in uninstall_key.iter_subkeys():
+            # Compare value with known browser applications
             if value is not None:
                 check_registry_value_with_known_browsers(value)
     except Exception as e:
@@ -260,6 +277,7 @@ def process_start_menu_internet_from_root(root, is_user_hive=False):
             uninstall_key = root.get_key("Clients")
         uninstall_key = uninstall_key.get_subkey("StartMenuInternet")
         for value in uninstall_key.iter_subkeys():
+            # Compare value with known browser applications
             if value is not None:
                 check_registry_value_with_known_browsers(value)
     except Exception as e:
@@ -282,6 +300,7 @@ def process_uninstall_key_from_root(root, is_user_hive=False):
         uninstall_key = uninstall_key.get_subkey("CurrentVersion")
         uninstall_key = uninstall_key.get_subkey("Uninstall")
         for value in uninstall_key.iter_subkeys():
+            # Compare value with known browser applications
             if value is not None:
                 check_registry_value_with_known_browsers(value)
     except Exception as e:
@@ -300,6 +319,7 @@ def process_uninstall_key_from_root(root, is_user_hive=False):
         uninstall_key = uninstall_key.get_subkey("CurrentVersion")
         uninstall_key = uninstall_key.get_subkey("Uninstall")
         for value in uninstall_key.iter_subkeys():
+            # Compare value with known browser applications
             if value is not None:
                 check_registry_value_with_known_browsers(value)
     except Exception as e:
@@ -308,6 +328,7 @@ def process_uninstall_key_from_root(root, is_user_hive=False):
 
 
 def extract_and_filter(database, file_name_directory, browser_name):
+    # Extract and filter browser databases by browser type
     global category_filter
     path_to_db = extract_file_and_get_path(
         database[0][2],
@@ -337,6 +358,7 @@ def process_amcache_file_from_root(root):
     try:
         inventory_application_key = root.get_subkey("InventoryApplication")
         for key in inventory_application_key.iter_subkeys():
+            # Compare applications with browser name
             name = key.get_value("Name")
             if name is not None:
                 found_browser = check_name_with_known_browsers(name, browser_name_threshold)
@@ -353,6 +375,7 @@ def process_amcache_file_from_root(root):
     try:
         inventory_application_file_key = root.get_subkey("InventoryApplicationFile")
         for key in inventory_application_file_key.iter_subkeys():
+            # Compare applications with browser name
             name = key.get_value("Name")
             if name is not None:
                 found_browser = check_name_with_known_browsers(name, browser_name_threshold)
